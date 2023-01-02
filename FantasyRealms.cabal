@@ -1,0 +1,39 @@
+cabal-version:      2.4
+name:               FantasyRealms
+version:            0.1.0.0
+synopsis:
+
+-- A longer description of the package.
+-- description:
+homepage:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Martijn van Steenbergen
+maintainer:         martijn@van.steenbergen.nl
+
+-- A copyright notice.
+-- copyright:
+category:           Game
+extra-source-files: CHANGELOG.md
+
+library
+    exposed-modules:  FantasyRealms
+
+    -- Modules included in this library but not exported.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:    base ^>=4.16.4.0, containers ^>= 0.6.6, Boolean ^>= 0.2.4
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+test-suite FantasyRealms-test
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          MyLibTest.hs
+    build-depends:    base ^>=4.16.4.0
