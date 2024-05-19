@@ -1,7 +1,7 @@
-cabal-version:      2.4
+cabal-version:      3.0
 name:               FantasyRealms
 version:            0.1.0.0
-synopsis:
+synopsis:           Scoring calculator for the Fantasy Realms card game
 
 -- A longer description of the package.
 -- description:
@@ -19,7 +19,11 @@ maintainer:         martijn@van.steenbergen.nl
 category:           Game
 extra-source-files: CHANGELOG.md
 
+common warnings
+    ghc-options: -Wall
+
 library
+    import:           warnings
     exposed-modules:  FantasyRealms
 
     -- Modules included in this library but not exported.
@@ -27,11 +31,12 @@ library
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.16.4.0, containers ^>= 0.6.6, Boolean ^>= 0.2.4
+    build-depends:    base ^>=4.17.2.1, containers ^>= 0.6.6, Boolean ^>= 0.2.4
     hs-source-dirs:   src
     default-language: Haskell2010
 
 test-suite FantasyRealms-test
+    import:           warnings
     default-language: Haskell2010
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
