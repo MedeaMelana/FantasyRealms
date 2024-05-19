@@ -1,6 +1,6 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
+-- {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module FantasyRealms where
@@ -9,7 +9,7 @@ import Data.Boolean (notB, (&&*), (||*))
 import Data.Function ((&))
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Monoid (Sum (..))
+-- import Data.Monoid (Sum (..))
 import Data.Set (Set)
 import Data.Set qualified as Set
 
@@ -34,7 +34,7 @@ data CardName
   | Warhorse
   | SwordOfKeth
   | ShieldOfKeth
-  | GemOfOrder
+  -- | GemOfOrder
   | BookOfChanges
   | Princess
   deriving (Eq, Ord, Enum, Show, Read)
@@ -129,8 +129,8 @@ describe = \case
     where
       otherLeader card = hasSuit Leader card && name card /= name (describe Princess)
 
-score :: Hand -> Map CardName Int
-score hand =
+scoreHand :: Hand -> Map CardName Int
+scoreHand hand =
   Map.fromList
     [ (cardName, scoreCard (describe cardName))
       | cardName <- Set.toList hand
