@@ -63,7 +63,8 @@ withBonus score card =
   card {bonus = \hand -> bonus card hand + score hand}
 
 withPenalty :: Modifier -> Card -> Card
-withPenalty penalty card = card {penalty}
+withPenalty score card =
+  card {penalty = \hand -> penalty card hand + score hand}
 
 isValid :: Hand -> Bool
 isValid hand = Set.size hand == requiredSize
