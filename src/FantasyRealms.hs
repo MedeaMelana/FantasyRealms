@@ -13,6 +13,11 @@ import Data.Map qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
 
+-- Change type
+-- BONUS: Clears the Penalty on XXX
+-- PENALTY: Blanked
+-- PENALTY: Blanks
+
 data Suit
   = Army
   | Artifact
@@ -29,14 +34,18 @@ data Suit
 
 data CardName
   = BellTower
-  | Candle
-  | Necromancer
-  | Warhorse
-  | SwordOfKeth
-  | ShieldOfKeth
-  -- | GemOfOrder
   | BookOfChanges
+  | Candle
+  | Empress
+  | Enchantress
+  | King
+  | Necromancer
   | Princess
+  | Queen
+  | ShieldOfKeth
+  | SwordOfKeth
+  | Unicorn
+  | Warhorse
   deriving (Eq, Ord, Enum, Show, Read)
 
 type Hand = Set CardName
@@ -98,9 +107,33 @@ describe = \case
             &&* hasCardThat (hasName BellTower)
             &&* hasCardThat (hasSuit Wizard)
         )
+  Empress ->
+    mkCard Leader "Empress" 15
+      & withBonus (\hand -> 10 * Set.size (Set.filter (hasSuit Army . describe) hand))
+      & withPenalty (\hand -> (-5) * Set.size (Set.filter (hasSuit Leader . describe) hand))
+      -- TODO Empress should not count itself
+  Enchantress ->
+    mkCard Wizard "Enchantress" 5
+      & withBonus (\hand -> 10 * Set.size (Set.filter (hasElementalSuit . describe) hand))
+    where
+      hasElementalSuit = hasSuit Land ||* hasSuit Weather ||* hasSuit Flood ||* hasSuit Flame
+  King -> mkCard Leader "King" 8
+      & withBonus (\hand -> perArmyBonus hand * Set.size (Set.filter (hasSuit Army . describe) hand))
+    where
+      perArmyBonus hand = if Set.member Queen hand then 20 else 5
   Necromancer ->
     mkCard Wizard "Necromancer" 3
       & withBonusWhen 14 (hasCardThat (hasSuit Leader ||* hasSuit Wizard))
+  Queen ->
+    mkCard Leader "Queen" 6
+      & withBonus (\hand -> perArmyBonus hand * Set.size (Set.filter (hasSuit Army . describe) hand))
+    where
+      perArmyBonus hand = if Set.member King hand then 20 else 5
+  Unicorn ->
+    mkCard Beast "Unicorn" 9
+      & withBonusWhen 30 (hasCardThat (hasName Princess))
+      & withBonusWhen 15 (notB (hasCardThat (hasName Princess)) &&*
+          hasCardThat (hasName Empress ||* hasName Queen ||* hasName Enchantress))
   Warhorse ->
     mkCard Beast "Warhorse" 6
       & withBonusWhen 14 (hasCardThat (hasSuit Leader ||* hasSuit Wizard))
@@ -127,9 +160,8 @@ describe = \case
   BookOfChanges -> mkCard Artifact "Book of Changes" 3
   Princess ->
     mkCard Leader "Princess" 2
-      & withBonus (\hand -> 8 * Set.size (Set.filter (otherLeader . describe) hand))
-    where
-      otherLeader card = hasSuit Leader card && name card /= name (describe Princess)
+      & withBonus (\hand -> 8 * Set.size (Set.filter (hasSuit Leader . describe) hand))
+      -- TODO Princess should not count itself
 
 scoreHand :: Hand -> Map CardName Int
 scoreHand hand =
