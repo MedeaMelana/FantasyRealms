@@ -51,11 +51,13 @@ data Card = Card
     penalty :: Modifier
   }
 
+type Predicate a = a -> Bool
+
 mkCard :: Suit -> String -> Int -> Card
 mkCard suit name baseStrength =
   Card {bonus = const 0, penalty = const 0, ..}
 
-withBonusWhen :: Int -> (Hand -> Bool) -> Card -> Card
+withBonusWhen :: Int -> Predicate Hand -> Card -> Card
 withBonusWhen score matches = withBonus (when matches score)
 
 withBonus :: Modifier -> Card -> Card
@@ -66,21 +68,21 @@ withPenalty :: Modifier -> Card -> Card
 withPenalty score card =
   card {penalty = \hand -> penalty card hand + score hand}
 
-isValid :: Hand -> Bool
+isValid :: Predicate Hand
 isValid hand = Set.size hand == requiredSize
   where
     requiredSize = if Set.member Necromancer hand then 8 else 7
 
-hasCardThat :: (Card -> Bool) -> Hand -> Bool
+hasCardThat :: Predicate Card -> Predicate Hand
 hasCardThat matches = any (matches . describe)
 
-when :: (Hand -> Bool) -> Int -> Modifier
+when :: Predicate Hand -> Int -> Modifier
 when matches score hand = if matches hand then score else 0
 
-hasSuit :: Suit -> Card -> Bool
+hasSuit :: Suit -> Predicate Card
 hasSuit wantedSuit card = suit card == wantedSuit
 
-hasName :: CardName -> Card -> Bool
+hasName :: CardName -> Predicate Card
 hasName cardName card = name (describe cardName) == name card
 
 describe :: CardName -> Card
