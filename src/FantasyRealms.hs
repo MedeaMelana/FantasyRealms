@@ -99,6 +99,7 @@ describe = \case
   BellTower ->
     mkCard Land "Bell Tower" 8
       & withBonusWhen 15 (hasCardThat (hasSuit Wizard))
+  BookOfChanges -> mkCard Artifact "Book of Changes" 3 -- TODO
   Candle ->
     mkCard Flame "Candle" 2
       & withBonusWhen
@@ -124,29 +125,15 @@ describe = \case
   Necromancer ->
     mkCard Wizard "Necromancer" 3
       & withBonusWhen 14 (hasCardThat (hasSuit Leader ||* hasSuit Wizard))
+  Princess ->
+    mkCard Leader "Princess" 2
+      & withBonus (\hand -> 8 * Set.size (Set.filter (hasSuit Leader . describe) hand))
+      -- TODO Princess should not count itself
   Queen ->
     mkCard Leader "Queen" 6
       & withBonus (\hand -> perArmyBonus hand * Set.size (Set.filter (hasSuit Army . describe) hand))
     where
       perArmyBonus hand = if Set.member King hand then 20 else 5
-  Unicorn ->
-    mkCard Beast "Unicorn" 9
-      & withBonusWhen 30 (hasCardThat (hasName Princess))
-      & withBonusWhen 15 (notB (hasCardThat (hasName Princess)) &&*
-          hasCardThat (hasName Empress ||* hasName Queen ||* hasName Enchantress))
-  Warhorse ->
-    mkCard Beast "Warhorse" 6
-      & withBonusWhen 14 (hasCardThat (hasSuit Leader ||* hasSuit Wizard))
-  SwordOfKeth ->
-    mkCard Weapon "Sword of Keth" 7
-      & withBonusWhen
-        10
-        ( hasCardThat (hasSuit Leader)
-            &&* notB (hasCardThat (hasName ShieldOfKeth))
-        )
-      & withBonusWhen
-        40
-        (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName ShieldOfKeth))
   ShieldOfKeth ->
     mkCard Artifact "Shield of Keth" 4
       & withBonusWhen
@@ -157,11 +144,24 @@ describe = \case
       & withBonusWhen
         40
         (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName SwordOfKeth))
-  BookOfChanges -> mkCard Artifact "Book of Changes" 3
-  Princess ->
-    mkCard Leader "Princess" 2
-      & withBonus (\hand -> 8 * Set.size (Set.filter (hasSuit Leader . describe) hand))
-      -- TODO Princess should not count itself
+  SwordOfKeth ->
+    mkCard Weapon "Sword of Keth" 7
+      & withBonusWhen
+        10
+        ( hasCardThat (hasSuit Leader)
+            &&* notB (hasCardThat (hasName ShieldOfKeth))
+        )
+      & withBonusWhen
+        40
+        (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName ShieldOfKeth))
+  Unicorn ->
+    mkCard Beast "Unicorn" 9
+      & withBonusWhen 30 (hasCardThat (hasName Princess))
+      & withBonusWhen 15 (notB (hasCardThat (hasName Princess)) &&*
+          hasCardThat (hasName Empress ||* hasName Queen ||* hasName Enchantress))
+  Warhorse ->
+    mkCard Beast "Warhorse" 6
+      & withBonusWhen 14 (hasCardThat (hasSuit Leader ||* hasSuit Wizard))
 
 scoreHand :: Hand -> Map CardName Int
 scoreHand hand =
