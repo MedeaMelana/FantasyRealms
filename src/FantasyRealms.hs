@@ -73,6 +73,9 @@ hasCardThat matches = any (matches . describe)
 pointsWhen :: Int -> Predicate Hand -> Modifier
 pointsWhen score matches hand = if matches hand then score else 0
 
+pointsForEachCardThat :: Int -> Predicate Card -> Modifier
+pointsForEachCardThat score matches hand = score * Set.size (Set.filter (matches . describe) hand)
+
 hasSuit :: Suit -> Predicate Card
 hasSuit wantedSuit card = suit card == wantedSuit
 
@@ -115,7 +118,7 @@ describe = \case
       { name = "Empress",
         suit = Leader,
         baseStrength = 15,
-        bonus = \hand -> 10 * Set.size (Set.filter (hasSuit Army . describe) hand),
+        bonus = 10 `pointsForEachCardThat` hasSuit Army,
         penalty =
           \hand -> (-5) * Set.size (Set.filter (hasSuit Leader . describe) hand)
           -- TODO Empress should not count itself
@@ -125,7 +128,7 @@ describe = \case
       { name = "Enchantress",
         suit = Wizard,
         baseStrength = 5,
-        bonus = \hand -> 5 * Set.size (Set.filter (hasElementalSuit . describe) hand),
+        bonus = 5 `pointsForEachCardThat` hasElementalSuit,
         penalty = noModifier
       }
     where
@@ -135,7 +138,7 @@ describe = \case
       { name = "King",
         suit = Leader,
         baseStrength = 8,
-        bonus = \hand -> perArmyBonus hand * Set.size (Set.filter (hasSuit Army . describe) hand),
+        bonus = \hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) hand,
         penalty = noModifier
       }
     where
@@ -153,7 +156,7 @@ describe = \case
       { name = "Princess",
         suit = Leader,
         baseStrength = 2,
-        bonus = \hand -> 8 * Set.size (Set.filter (hasSuit Leader . describe) hand),
+        bonus = 8 `pointsForEachCardThat` hasSuit Leader,
         penalty = noModifier
       }
   -- TODO Princess should not count itself
@@ -162,7 +165,7 @@ describe = \case
       { name = "Queen",
         suit = Leader,
         baseStrength = 6,
-        bonus = \hand -> perArmyBonus hand * Set.size (Set.filter (hasSuit Army . describe) hand),
+        bonus = \hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) hand,
         penalty = noModifier
       }
     where
