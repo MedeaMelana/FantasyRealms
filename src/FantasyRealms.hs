@@ -125,7 +125,7 @@ describe = \case
       { name = "Enchantress",
         suit = Wizard,
         baseStrength = 5,
-        bonus = \hand -> 10 * Set.size (Set.filter (hasElementalSuit . describe) hand),
+        bonus = \hand -> 5 * Set.size (Set.filter (hasElementalSuit . describe) hand),
         penalty = noModifier
       }
     where
