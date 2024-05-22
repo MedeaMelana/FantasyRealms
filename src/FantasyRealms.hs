@@ -3,6 +3,7 @@
 
 module FantasyRealms where
 
+import Control.Applicative (liftA2)
 import Data.Boolean (notB, (&&*), (||*))
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -69,14 +70,19 @@ isValid hand = Set.size hand == requiredSize
 hasCardThat :: Predicate Card -> Predicate Hand
 hasCardThat matches = any (matches . describe)
 
-when :: Predicate Hand -> Int -> Modifier
-when matches score hand = if matches hand then score else 0
+pointsWhen :: Int -> Predicate Hand -> Modifier
+pointsWhen score matches hand = if matches hand then score else 0
 
 hasSuit :: Suit -> Predicate Card
 hasSuit wantedSuit card = suit card == wantedSuit
 
 hasName :: CardName -> Predicate Card
 hasName cardName card = name (describe cardName) == name card
+
+(<+>) :: (a -> Int) -> (a -> Int) -> a -> Int
+(<+>) = liftA2 (+)
+
+infixr 6 <+>
 
 describe :: CardName -> Card
 describe = \case
@@ -85,7 +91,7 @@ describe = \case
       { name = "Bell Tower",
         suit = Land,
         baseStrength = 8,
-        bonus = when (hasCardThat (hasSuit Wizard)) 15,
+        bonus = 15 `pointsWhen` hasCardThat (hasSuit Wizard),
         penalty = noModifier
       }
   BookOfChanges ->
@@ -101,13 +107,7 @@ describe = \case
       { name = "Candle",
         suit = Flame,
         baseStrength = 2,
-        bonus =
-          when
-            ( hasCardThat (hasName BookOfChanges)
-                &&* hasCardThat (hasName BellTower)
-                &&* hasCardThat (hasSuit Wizard)
-            )
-            100,
+        bonus = 100 `pointsWhen` (hasCardThat (hasName BookOfChanges) &&* hasCardThat (hasName BellTower) &&* hasCardThat (hasSuit Wizard)),
         penalty = noModifier
       }
   Empress ->
@@ -145,7 +145,7 @@ describe = \case
       { name = "Necromancer",
         suit = Wizard,
         baseStrength = 3,
-        bonus = when (hasCardThat (hasSuit Leader ||* hasSuit Wizard)) 14,
+        bonus = 14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard),
         penalty = noModifier
       }
   Princess ->
@@ -172,9 +172,11 @@ describe = \case
       { name = "Shield of Keth",
         suit = Artifact,
         baseStrength = 4,
-        bonus = \hand ->
-          when (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName SwordOfKeth))) 15 hand
-            + when (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName SwordOfKeth)) 40 hand,
+        bonus =
+          15
+            `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName SwordOfKeth)))
+            <+> 40
+            `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName SwordOfKeth)),
         penalty = noModifier
       }
   SwordOfKeth ->
@@ -182,9 +184,11 @@ describe = \case
       { name = "Sword of Keth",
         suit = Weapon,
         baseStrength = 7,
-        bonus = \hand ->
-          when (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName ShieldOfKeth))) 10 hand
-            + when (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName ShieldOfKeth)) 40 hand,
+        bonus =
+          10
+            `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName ShieldOfKeth)))
+            <+> 40
+            `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName ShieldOfKeth)),
         penalty = noModifier
       }
   Unicorn ->
@@ -192,14 +196,13 @@ describe = \case
       { name = "Unicorn",
         suit = Beast,
         baseStrength = 9,
-        bonus = \hand ->
-          when (hasCardThat (hasName Princess)) 30 hand
-            + when
-              ( notB (hasCardThat (hasName Princess))
-                  &&* hasCardThat (hasName Empress ||* hasName Queen ||* hasName Enchantress)
-              )
-              15
-              hand,
+        bonus =
+          30
+            `pointsWhen` hasCardThat (hasName Princess)
+            <+> 15
+            `pointsWhen` ( notB (hasCardThat (hasName Princess))
+                             &&* hasCardThat (hasName Empress ||* hasName Queen ||* hasName Enchantress)
+                         ),
         penalty = noModifier
       }
   Warhorse ->
@@ -207,7 +210,7 @@ describe = \case
       { name = "Warhorse",
         suit = Beast,
         baseStrength = 6,
-        bonus = when (hasCardThat (hasSuit Leader ||* hasSuit Wizard)) 14,
+        bonus = 14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard),
         penalty = noModifier
       }
 
