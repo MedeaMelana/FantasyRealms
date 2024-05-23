@@ -120,8 +120,7 @@ describe = \case
         baseStrength = 15,
         bonus = 10 `pointsForEachCardThat` hasSuit Army,
         penalty =
-          \hand -> (-5) * Set.size (Set.filter (hasSuit Leader . describe) hand)
-          -- TODO Empress should not count itself
+          (-5) `pointsForEachCardThat` (hasSuit Leader &&* notB (hasName Empress))
       }
   Enchantress ->
     Card
@@ -156,10 +155,9 @@ describe = \case
       { name = "Princess",
         suit = Leader,
         baseStrength = 2,
-        bonus = 8 `pointsForEachCardThat` hasSuit Leader,
+        bonus = 8 `pointsForEachCardThat` (hasSuit Army ||* hasSuit Wizard ||* (hasSuit Leader &&* notB (hasName Princess))),
         penalty = noModifier
       }
-  -- TODO Princess should not count itself
   Queen ->
     Card
       { name = "Queen",
