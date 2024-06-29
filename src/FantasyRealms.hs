@@ -47,17 +47,12 @@ data CardName
 
 type Hand = Set CardName
 
-type Modifier = Hand -> Int
-
-noModifier :: Modifier
-noModifier _ = 0
-
 data Card = Card
   { name :: String,
     baseStrength :: Int,
     suit :: Suit,
-    bonus :: Modifier,
-    penalty :: Modifier
+    bonus :: Hand -> Int,
+    penalty :: Hand -> Int
   }
 
 type Predicate a = a -> Bool
@@ -70,10 +65,10 @@ isValid hand = Set.size hand == requiredSize
 hasCardThat :: Predicate Card -> Predicate Hand
 hasCardThat matches = any (matches . describe)
 
-pointsWhen :: Int -> Predicate Hand -> Modifier
+pointsWhen :: Int -> Predicate Hand -> Hand -> Int
 pointsWhen score matches hand = if matches hand then score else 0
 
-pointsForEachCardThat :: Int -> Predicate Card -> Modifier
+pointsForEachCardThat :: Int -> Predicate Card -> Hand -> Int
 pointsForEachCardThat score matches hand = score * Set.size (Set.filter (matches . describe) hand)
 
 hasSuit :: Suit -> Predicate Card
@@ -95,15 +90,15 @@ describe = \case
         suit = Land,
         baseStrength = 8,
         bonus = 15 `pointsWhen` hasCardThat (hasSuit Wizard),
-        penalty = noModifier
+        penalty = const 0
       }
   BookOfChanges ->
     Card
       { name = "Book of Changes",
         suit = Artifact,
         baseStrength = 3,
-        bonus = noModifier, -- TODO
-        penalty = noModifier
+        bonus = const 0, -- TODO
+        penalty = const 0
       }
   Candle ->
     Card
@@ -111,7 +106,7 @@ describe = \case
         suit = Flame,
         baseStrength = 2,
         bonus = 100 `pointsWhen` (hasCardThat (hasName BookOfChanges) &&* hasCardThat (hasName BellTower) &&* hasCardThat (hasSuit Wizard)),
-        penalty = noModifier
+        penalty = const 0
       }
   Empress ->
     Card
@@ -128,7 +123,7 @@ describe = \case
         suit = Wizard,
         baseStrength = 5,
         bonus = 5 `pointsForEachCardThat` hasElementalSuit,
-        penalty = noModifier
+        penalty = const 0
       }
     where
       hasElementalSuit = hasSuit Land ||* hasSuit Weather ||* hasSuit Flood ||* hasSuit Flame
@@ -138,7 +133,7 @@ describe = \case
         suit = Leader,
         baseStrength = 8,
         bonus = \hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) hand,
-        penalty = noModifier
+        penalty = const 0
       }
     where
       perArmyBonus hand = if Set.member Queen hand then 20 else 5
@@ -148,7 +143,7 @@ describe = \case
         suit = Wizard,
         baseStrength = 3,
         bonus = 14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard),
-        penalty = noModifier
+        penalty = const 0
       }
   Princess ->
     Card
@@ -156,7 +151,7 @@ describe = \case
         suit = Leader,
         baseStrength = 2,
         bonus = 8 `pointsForEachCardThat` (hasSuit Army ||* hasSuit Wizard ||* (hasSuit Leader &&* notB (hasName Princess))),
-        penalty = noModifier
+        penalty = const 0
       }
   Queen ->
     Card
@@ -164,7 +159,7 @@ describe = \case
         suit = Leader,
         baseStrength = 6,
         bonus = \hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) hand,
-        penalty = noModifier
+        penalty = const 0
       }
     where
       perArmyBonus hand = if Set.member King hand then 20 else 5
@@ -178,7 +173,7 @@ describe = \case
             `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName SwordOfKeth)))
             <+> 40
             `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName SwordOfKeth)),
-        penalty = noModifier
+        penalty = const 0
       }
   SwordOfKeth ->
     Card
@@ -190,7 +185,7 @@ describe = \case
             `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName ShieldOfKeth)))
             <+> 40
             `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName ShieldOfKeth)),
-        penalty = noModifier
+        penalty = const 0
       }
   Unicorn ->
     Card
@@ -204,7 +199,7 @@ describe = \case
             `pointsWhen` ( notB (hasCardThat (hasName Princess))
                              &&* hasCardThat (hasName Empress ||* hasName Queen ||* hasName Enchantress)
                          ),
-        penalty = noModifier
+        penalty = const 0
       }
   Warhorse ->
     Card
@@ -212,7 +207,7 @@ describe = \case
         suit = Beast,
         baseStrength = 6,
         bonus = 14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard),
-        penalty = noModifier
+        penalty = const 0
       }
 
 scoreHand :: Hand -> Map CardName Int
