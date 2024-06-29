@@ -5,6 +5,7 @@ module FantasyRealms where
 
 import Control.Applicative (liftA2)
 import Data.Boolean (notB, (&&*), (||*))
+import Data.List (sort)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
@@ -37,6 +38,7 @@ data CardName
   | ElvenArchers
   | Empress
   | Enchantress
+  | GemOfOrder
   | King
   | Knights
   | LightCavalry
@@ -148,6 +150,25 @@ describe = \case
       }
     where
       hasElementalSuit = hasSuit Land ||* hasSuit Weather ||* hasSuit Flood ||* hasSuit Flame
+  GemOfOrder ->
+    Card
+      { name = "Gem of Order",
+        suit = Artifact,
+        baseStrength = 5,
+        bonus = scoreLength . longestRunLength . baseStrengths,
+        penalty = const 0
+      }
+    where
+      baseStrengths = sort . map (baseStrength . describe) . Set.toList
+      scoreLength = \case
+        0 -> 0
+        1 -> 0
+        2 -> 0
+        3 -> 10
+        4 -> 30
+        5 -> 60
+        6 -> 100
+        _ -> 150
   King ->
     Card
       { name = "King",
@@ -264,3 +285,12 @@ scoreHand hand =
     ]
   where
     scoreCard card = baseStrength card + bonus card hand + penalty card hand
+
+-- | Length of the longest run of consecutive values.
+longestRunLength :: [Int] -> Int
+longestRunLength = snd . foldr go (Nothing, 0)
+  where
+    go x = \case
+      (Just (hd, hdLen), len)
+        | x + 1 == hd -> (Just (x, hdLen + 1), (hdLen + 1) `max` len)
+      (_, len) -> (Just (x, 1), 1 `max` len)
