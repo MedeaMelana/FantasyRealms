@@ -33,11 +33,16 @@ data CardName
   = BellTower
   | BookOfChanges
   | Candle
+  | DwarvishInfantry
+  | ElvenArchers
   | Empress
   | Enchantress
   | King
+  | Knights
+  | LightCavalry
   | Necromancer
   | Princess
+  | Rangers
   | Queen
   | ShieldOfKeth
   | SwordOfKeth
@@ -108,6 +113,22 @@ describe = \case
         bonus = 100 `pointsWhen` (hasCardThat (hasName BookOfChanges) &&* hasCardThat (hasName BellTower) &&* hasCardThat (hasSuit Wizard)),
         penalty = const 0
       }
+  DwarvishInfantry ->
+    Card
+      { name = "Dwarvish Infantry",
+        suit = Army,
+        baseStrength = 15,
+        bonus = const 0,
+        penalty = (-2) `pointsForEachCardThat` (hasSuit Army &&* notB (hasName DwarvishInfantry))
+      }
+  ElvenArchers ->
+    Card
+      { name = "Elven Archers",
+        suit = Army,
+        baseStrength = 10,
+        bonus = 5 `pointsWhen` notB (hasCardThat (hasSuit Weather)),
+        penalty = const 0
+      }
   Empress ->
     Card
       { name = "Empress",
@@ -137,6 +158,22 @@ describe = \case
       }
     where
       perArmyBonus hand = if Set.member Queen hand then 20 else 5
+  Knights ->
+    Card
+      { name = "Knights",
+        suit = Army,
+        baseStrength = 20,
+        bonus = const 0,
+        penalty = (-8) `pointsWhen` notB (hasCardThat (hasSuit Leader))
+      }
+  LightCavalry ->
+    Card
+      { name = "Light Cavalry",
+        suit = Army,
+        baseStrength = 17,
+        bonus = const 0,
+        penalty = (-2) `pointsForEachCardThat` hasSuit Land
+      }
   Necromancer ->
     Card
       { name = "Necromancer",
@@ -163,6 +200,15 @@ describe = \case
       }
     where
       perArmyBonus hand = if Set.member King hand then 20 else 5
+  Rangers ->
+    Card
+      { name = "Rangers",
+        suit = Army,
+        baseStrength = 5,
+        bonus = 10 `pointsForEachCardThat` hasSuit Land,
+        penalty = const 0
+        -- TODO: CLEARS the word Army from all Penalties.
+      }
   ShieldOfKeth ->
     Card
       { name = "Shield of Keth",
