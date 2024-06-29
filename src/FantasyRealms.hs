@@ -5,7 +5,7 @@ module FantasyRealms where
 
 import Control.Applicative (liftA2)
 import Data.Boolean (notB, (&&*), (||*))
-import Data.List (sort)
+import Data.List (nub, sort)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
@@ -50,6 +50,7 @@ data CardName
   | SwordOfKeth
   | Unicorn
   | Warhorse
+  | WorldTree
   deriving (Eq, Ord, Enum, Show, Read)
 
 type Hand = Set CardName
@@ -276,6 +277,18 @@ describe = \case
         bonus = 14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard),
         penalty = const 0
       }
+  WorldTree ->
+    Card
+      { name = "World Tree",
+        suit = Artifact,
+        baseStrength = 2,
+        bonus = 50 `pointsWhen` allCardsHaveDifferentSuits,
+        penalty = const 0
+      }
+    where
+      allCardsHaveDifferentSuits hand = length suits == length (nub suits)
+        where
+          suits = map (suit . describe) (Set.toList hand)
 
 scoreHand :: Hand -> Map CardName Int
 scoreHand hand =
