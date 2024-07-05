@@ -31,14 +31,18 @@ data Suit
   deriving (Eq, Ord, Enum, Show, Read)
 
 data CardName
-  = BellTower
+  = Basilisk
+  | BellTower
   | BookOfChanges
   | Candle
+  | Cavern
+  | Dragon
   | DwarvishInfantry
   | ElvenArchers
   | Empress
   | Enchantress
   | GemOfOrder
+  | Hydra
   | King
   | Knights
   | LightCavalry
@@ -47,6 +51,7 @@ data CardName
   | Rangers
   | Queen
   | ShieldOfKeth
+  | Swamp
   | SwordOfKeth
   | Unicorn
   | Warhorse
@@ -92,6 +97,15 @@ infixr 6 <+>
 
 describe :: CardName -> Card
 describe = \case
+  Basilisk ->
+    Card
+      { name = "Basilisk",
+        suit = Beast,
+        baseStrength = 35,
+        bonus = const 0,
+        penalty = const 0
+        -- TODO: BLANKS all Armies, Leaders, and other Beasts
+      }
   BellTower ->
     Card
       { name = "Bell Tower",
@@ -115,6 +129,23 @@ describe = \case
         baseStrength = 2,
         bonus = 100 `pointsWhen` (hasCardThat (hasName BookOfChanges) &&* hasCardThat (hasName BellTower) &&* hasCardThat (hasSuit Wizard)),
         penalty = const 0
+      }
+  Cavern ->
+    Card
+      { name = "Cavern",
+        suit = Land,
+        baseStrength = 6,
+        bonus = 25 `pointsWhen` hasCardThat (hasName DwarvishInfantry ||* hasName Dragon),
+        penalty = const 0
+        -- TODO: CLEARS the Penalty on all Weather
+      }
+  Dragon ->
+    Card
+      { name = "Dragon",
+        suit = Beast,
+        baseStrength = 30,
+        bonus = const 0,
+        penalty = (-40) `pointsWhen` notB (hasCardThat (hasSuit Wizard))
       }
   DwarvishInfantry ->
     Card
@@ -170,6 +201,14 @@ describe = \case
         5 -> 60
         6 -> 100
         _ -> 150
+  Hydra ->
+    Card
+      { name = "Hydra",
+        suit = Beast,
+        baseStrength = 12,
+        bonus = 28 `pointsWhen` hasCardThat (hasName Swamp),
+        penalty = const 0
+      }
   King ->
     Card
       { name = "King",
@@ -242,6 +281,14 @@ describe = \case
             <+> 40
             `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName SwordOfKeth)),
         penalty = const 0
+      }
+  Swamp ->
+    Card
+      { name = "Swamp",
+        suit = Flood,
+        baseStrength = 18,
+        bonus = const 0,
+        penalty = (-3) `pointsForEachCardThat` (hasSuit Army ||* hasSuit Flame)
       }
   SwordOfKeth ->
     Card
