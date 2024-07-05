@@ -48,6 +48,7 @@ data CardName
   | LightCavalry
   | Necromancer
   | Princess
+  | ProtectionRune
   | Rangers
   | Queen
   | ShieldOfKeth
@@ -55,6 +56,7 @@ data CardName
   | SwordOfKeth
   | Unicorn
   | Warhorse
+  | Wildfire
   | WorldTree
   deriving (Eq, Ord, Enum, Show, Read)
 
@@ -251,6 +253,15 @@ describe = \case
         bonus = 8 `pointsForEachCardThat` (hasSuit Army ||* hasSuit Wizard ||* (hasSuit Leader &&* notB (hasName Princess))),
         penalty = const 0
       }
+  ProtectionRune ->
+    Card
+      { name = "Protection Rune",
+        suit = Artifact,
+        baseStrength = 1,
+        bonus = const 0,
+        penalty = const 0
+        -- TODO: CLEARS the Penalty on all cards
+      }
   Queen ->
     Card
       { name = "Queen",
@@ -323,6 +334,16 @@ describe = \case
         baseStrength = 6,
         bonus = 14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard),
         penalty = const 0
+      }
+  Wildfire ->
+    Card
+      { name = "Wildfire",
+        suit = Flame,
+        baseStrength = 40,
+        bonus = const 0,
+        penalty = const 0
+        -- TODO: BLANKS all cards except Flames, Wizards, Weather, Weapons,
+        -- Artifacts, Mountain, Great Flood, Island, Unicorn and Dragon.
       }
   WorldTree ->
     Card
