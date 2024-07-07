@@ -4,12 +4,13 @@
 module FantasyRealms where
 
 import Control.Applicative (liftA2)
-import Data.Boolean (notB, (&&*), (||*))
+import Control.Arrow ((&&&))
+import Data.Boolean (Boolean (false), notB, (&&*), (||*))
 import Data.List (nub, sort)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 
 -- Change type
 -- BONUS: Clears the Penalty on XXX
@@ -67,7 +68,8 @@ data Card = Card
     baseStrength :: Int,
     suit :: Suit,
     bonus :: Hand -> Int,
-    penalty :: Hand -> Int
+    penalty :: Hand -> Int,
+    clearsPenalty :: Card -> Bool
   }
 
 type Predicate a = a -> Bool
@@ -105,7 +107,8 @@ describe = \case
         suit = Beast,
         baseStrength = 35,
         bonus = const 0,
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
         -- TODO: BLANKS all Armies, Leaders, and other Beasts
       }
   BellTower ->
@@ -114,7 +117,8 @@ describe = \case
         suit = Land,
         baseStrength = 8,
         bonus = 15 `pointsWhen` hasCardThat (hasSuit Wizard),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   BookOfChanges ->
     Card
@@ -122,7 +126,8 @@ describe = \case
         suit = Artifact,
         baseStrength = 3,
         bonus = const 0, -- TODO
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   Candle ->
     Card
@@ -130,7 +135,8 @@ describe = \case
         suit = Flame,
         baseStrength = 2,
         bonus = 100 `pointsWhen` (hasCardThat (hasName BookOfChanges) &&* hasCardThat (hasName BellTower) &&* hasCardThat (hasSuit Wizard)),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   Cavern ->
     Card
@@ -138,8 +144,8 @@ describe = \case
         suit = Land,
         baseStrength = 6,
         bonus = 25 `pointsWhen` hasCardThat (hasName DwarvishInfantry ||* hasName Dragon),
-        penalty = const 0
-        -- TODO: CLEARS the Penalty on all Weather
+        penalty = const 0,
+        clearsPenalty = (== Weather) . suit
       }
   Dragon ->
     Card
@@ -147,7 +153,8 @@ describe = \case
         suit = Beast,
         baseStrength = 30,
         bonus = const 0,
-        penalty = (-40) `pointsWhen` notB (hasCardThat (hasSuit Wizard))
+        penalty = (-40) `pointsWhen` notB (hasCardThat (hasSuit Wizard)),
+        clearsPenalty = const False
       }
   DwarvishInfantry ->
     Card
@@ -155,7 +162,8 @@ describe = \case
         suit = Army,
         baseStrength = 15,
         bonus = const 0,
-        penalty = (-2) `pointsForEachCardThat` (hasSuit Army &&* notB (hasName DwarvishInfantry))
+        penalty = (-2) `pointsForEachCardThat` (hasSuit Army &&* notB (hasName DwarvishInfantry)),
+        clearsPenalty = const False
       }
   ElvenArchers ->
     Card
@@ -163,7 +171,8 @@ describe = \case
         suit = Army,
         baseStrength = 10,
         bonus = 5 `pointsWhen` notB (hasCardThat (hasSuit Weather)),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   Empress ->
     Card
@@ -172,7 +181,8 @@ describe = \case
         baseStrength = 15,
         bonus = 10 `pointsForEachCardThat` hasSuit Army,
         penalty =
-          (-5) `pointsForEachCardThat` (hasSuit Leader &&* notB (hasName Empress))
+          (-5) `pointsForEachCardThat` (hasSuit Leader &&* notB (hasName Empress)),
+        clearsPenalty = const False
       }
   Enchantress ->
     Card
@@ -180,7 +190,8 @@ describe = \case
         suit = Wizard,
         baseStrength = 5,
         bonus = 5 `pointsForEachCardThat` hasElementalSuit,
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
     where
       hasElementalSuit = hasSuit Land ||* hasSuit Weather ||* hasSuit Flood ||* hasSuit Flame
@@ -190,7 +201,8 @@ describe = \case
         suit = Artifact,
         baseStrength = 5,
         bonus = scoreLength . longestRunLength . baseStrengths,
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
     where
       baseStrengths :: Map k Card -> [Int]
@@ -212,7 +224,8 @@ describe = \case
         suit = Beast,
         baseStrength = 12,
         bonus = 28 `pointsWhen` hasCardThat (hasName Swamp),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   King ->
     Card
@@ -220,7 +233,8 @@ describe = \case
         suit = Leader,
         baseStrength = 8,
         bonus = \hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) hand,
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
     where
       perArmyBonus hand = if Map.member Queen hand then 20 else 5
@@ -230,7 +244,8 @@ describe = \case
         suit = Army,
         baseStrength = 20,
         bonus = const 0,
-        penalty = (-8) `pointsWhen` notB (hasCardThat (hasSuit Leader))
+        penalty = (-8) `pointsWhen` notB (hasCardThat (hasSuit Leader)),
+        clearsPenalty = const False
       }
   LightCavalry ->
     Card
@@ -238,7 +253,8 @@ describe = \case
         suit = Army,
         baseStrength = 17,
         bonus = const 0,
-        penalty = (-2) `pointsForEachCardThat` hasSuit Land
+        penalty = (-2) `pointsForEachCardThat` hasSuit Land,
+        clearsPenalty = const False
       }
   Necromancer ->
     Card
@@ -246,7 +262,8 @@ describe = \case
         suit = Wizard,
         baseStrength = 3,
         bonus = 14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   Princess ->
     Card
@@ -254,7 +271,8 @@ describe = \case
         suit = Leader,
         baseStrength = 2,
         bonus = 8 `pointsForEachCardThat` (hasSuit Army ||* hasSuit Wizard ||* (hasSuit Leader &&* notB (hasName Princess))),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   ProtectionRune ->
     Card
@@ -262,8 +280,8 @@ describe = \case
         suit = Artifact,
         baseStrength = 1,
         bonus = const 0,
-        penalty = const 0
-        -- TODO: CLEARS the Penalty on all cards
+        penalty = const 0,
+        clearsPenalty = const True
       }
   Queen ->
     Card
@@ -271,7 +289,8 @@ describe = \case
         suit = Leader,
         baseStrength = 6,
         bonus = \hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) hand,
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
     where
       perArmyBonus hand = if Map.member King hand then 20 else 5
@@ -281,7 +300,8 @@ describe = \case
         suit = Army,
         baseStrength = 5,
         bonus = 10 `pointsForEachCardThat` hasSuit Land,
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
         -- TODO: CLEARS the word Army from all Penalties.
       }
   ShieldOfKeth ->
@@ -294,7 +314,8 @@ describe = \case
             `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName SwordOfKeth)))
             <+> 40
             `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName SwordOfKeth)),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   Swamp ->
     Card
@@ -302,7 +323,8 @@ describe = \case
         suit = Flood,
         baseStrength = 18,
         bonus = const 0,
-        penalty = (-3) `pointsForEachCardThat` (hasSuit Army ||* hasSuit Flame)
+        penalty = (-3) `pointsForEachCardThat` (hasSuit Army ||* hasSuit Flame),
+        clearsPenalty = const False
       }
   SwordOfKeth ->
     Card
@@ -314,7 +336,8 @@ describe = \case
             `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName ShieldOfKeth)))
             <+> 40
             `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName ShieldOfKeth)),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   Unicorn ->
     Card
@@ -328,7 +351,8 @@ describe = \case
             `pointsWhen` ( notB (hasCardThat (hasName Princess))
                              &&* hasCardThat (hasName Empress ||* hasName Queen ||* hasName Enchantress)
                          ),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   Warhorse ->
     Card
@@ -336,7 +360,8 @@ describe = \case
         suit = Beast,
         baseStrength = 6,
         bonus = 14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard),
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
   Wildfire ->
     Card
@@ -344,7 +369,8 @@ describe = \case
         suit = Flame,
         baseStrength = 40,
         bonus = const 0,
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
         -- TODO: BLANKS all cards except Flames, Wizards, Weather, Weapons,
         -- Artifacts, Mountain, Great Flood, Island, Unicorn and Dragon.
       }
@@ -354,7 +380,8 @@ describe = \case
         suit = Artifact,
         baseStrength = 2,
         bonus = 50 `pointsWhen` allCardsHaveDifferentSuits,
-        penalty = const 0
+        penalty = const 0,
+        clearsPenalty = const False
       }
     where
       allCardsHaveDifferentSuits hand = length suits == length (nub suits)
@@ -369,9 +396,27 @@ initializeHand cardNames =
     ]
 
 scoreHand :: Hand -> Map CardName Int
-scoreHand hand = Map.map scoreCard hand
+scoreHand = Map.map snd . scoreCards . clearPenalties
+
+scoreCards :: Map CardName Card -> Map CardName (Card, Int)
+scoreCards hand = Map.map (id &&& scoreCard) hand
   where
+    scoreCard :: Card -> Int
     scoreCard card = baseStrength card + bonus card hand + penalty card hand
+
+clearPenalties :: Map CardName Card -> Map CardName Card
+clearPenalties hand = Map.map updateCard hand
+  where
+    updateCard :: Card -> Card
+    updateCard card
+      | isPenaltyCleared card = clearPenalty card
+      | otherwise = card
+
+    isPenaltyCleared :: Card -> Bool
+    isPenaltyCleared = foldr ((||*) . clearsPenalty) false (Map.elems hand)
+
+    clearPenalty :: Card -> Card
+    clearPenalty card = card {penalty = const 0}
 
 -- | Length of the longest run of consecutive values.
 longestRunLength :: [Int] -> Int

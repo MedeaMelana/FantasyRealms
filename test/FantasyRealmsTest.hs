@@ -11,6 +11,7 @@ main = defaultMain $
   testCase "Scoring hands" $ do
     assertScores []
     assertScores [(BellTower, 23), (Enchantress, 10)]
+    assertScores [(ProtectionRune, 1), (Dragon, 30)]
 
 assertScores :: [(CardName, Int)] -> Assertion
 assertScores expectedScores = Map.fromList expectedScores @?= scoreHand hand
