@@ -14,6 +14,7 @@ main = defaultMain $
     assertScores [(ProtectionRune, 1), (Dragon, 30)]
 
 assertScores :: [(CardName, Int)] -> Assertion
-assertScores expectedScores = Map.fromList expectedScores @?= scoreHand hand
+assertScores expectedScores = Map.fromList expectedScores @?= actualScores
   where
     hand = initializeHand (Set.fromList (map fst expectedScores))
+    actualScores = scoreHand (computeEffects hand)

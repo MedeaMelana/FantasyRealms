@@ -1,10 +1,20 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
 
-module FantasyRealms where
+-- | Scoring calculator for the card game
+-- [Fantasy Realms](https://boardgamegeek.com/boardgame/223040/fantasy-realms).
+module FantasyRealms
+  ( Suit (..),
+    CardName (..),
+    Hand,
+    Card (..),
+    initializeHand,
+    computeEffects,
+    scoreHand,
+  )
+where
 
 import Control.Applicative (liftA2)
-import Control.Arrow ((&&&))
 import Data.Boolean (Boolean (false), notB, (&&*), (||*))
 import Data.List (nub, sort)
 import Data.Map (Map)
@@ -17,6 +27,7 @@ import Data.Set qualified as Set
 -- PENALTY: Blanked
 -- PENALTY: Blanks
 
+-- | The suit of a card.
 data Suit
   = Army
   | Artifact
@@ -31,6 +42,7 @@ data Suit
   | Wizard
   deriving (Eq, Ord, Enum, Show, Read)
 
+-- | The available cards in the game.
 data CardName
   = Basilisk
   | BellTower
@@ -61,6 +73,7 @@ data CardName
   | WorldTree
   deriving (Eq, Ord, Enum, Show, Read)
 
+-- | A hand of cards and their properties.
 type Hand = Map CardName Card
 
 data Card = Card
@@ -73,11 +86,6 @@ data Card = Card
   }
 
 type Predicate a = a -> Bool
-
-isValid :: Predicate Hand
-isValid hand = Map.size hand == requiredSize
-  where
-    requiredSize = if Map.member Necromancer hand then 8 else 7
 
 hasCardThat :: Predicate Card -> Predicate Hand
 hasCardThat = any
@@ -388,6 +396,9 @@ describe = \case
         where
           suits = map suit (Map.elems hand)
 
+-- | Expands the given cards to a hand.
+--
+-- All cards have base properties, and still need to have their effects applied to each other.
 initializeHand :: Set CardName -> Hand
 initializeHand cardNames =
   Map.fromAscList
@@ -395,11 +406,13 @@ initializeHand cardNames =
       | cardName <- Set.toAscList cardNames
     ]
 
-scoreHand :: Hand -> Map CardName Int
-scoreHand = Map.map snd . scoreCards . clearPenalties
+-- | Compute the various effects that cards have on each other.
+computeEffects :: Hand -> Hand
+computeEffects = clearPenalties
 
-scoreCards :: Map CardName Card -> Map CardName (Card, Int)
-scoreCards hand = Map.map (id &&& scoreCard) hand
+-- | Score a hand of cards based on their current properties.
+scoreHand :: Hand -> Map CardName Int
+scoreHand hand = Map.map scoreCard hand
   where
     scoreCard :: Card -> Int
     scoreCard card = baseStrength card + bonusScore card hand + penaltyScore card hand
