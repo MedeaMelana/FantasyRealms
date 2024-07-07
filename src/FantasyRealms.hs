@@ -9,7 +9,7 @@ import Data.List (nub, sort)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
-import Data.Set qualified as Set
+import qualified Data.Set as Set
 
 -- Change type
 -- BONUS: Clears the Penalty on XXX
@@ -60,7 +60,7 @@ data CardName
   | WorldTree
   deriving (Eq, Ord, Enum, Show, Read)
 
-type Hand = Set CardName
+type Hand = Map CardName Card
 
 data Card = Card
   { name :: String,
@@ -73,18 +73,18 @@ data Card = Card
 type Predicate a = a -> Bool
 
 isValid :: Predicate Hand
-isValid hand = Set.size hand == requiredSize
+isValid hand = Map.size hand == requiredSize
   where
-    requiredSize = if Set.member Necromancer hand then 8 else 7
+    requiredSize = if Map.member Necromancer hand then 8 else 7
 
 hasCardThat :: Predicate Card -> Predicate Hand
-hasCardThat matches = any (matches . describe)
+hasCardThat = any
 
 pointsWhen :: Int -> Predicate Hand -> Hand -> Int
 pointsWhen score matches hand = if matches hand then score else 0
 
 pointsForEachCardThat :: Int -> Predicate Card -> Hand -> Int
-pointsForEachCardThat score matches hand = score * Set.size (Set.filter (matches . describe) hand)
+pointsForEachCardThat score matches hand = score * Map.size (Map.filter matches hand)
 
 hasSuit :: Suit -> Predicate Card
 hasSuit wantedSuit card = suit card == wantedSuit
@@ -193,7 +193,10 @@ describe = \case
         penalty = const 0
       }
     where
-      baseStrengths = sort . map (baseStrength . describe) . Set.toList
+      baseStrengths :: Map k Card -> [Int]
+      baseStrengths = sort . map baseStrength . Map.elems
+
+      scoreLength :: Int -> Int
       scoreLength = \case
         0 -> 0
         1 -> 0
@@ -220,7 +223,7 @@ describe = \case
         penalty = const 0
       }
     where
-      perArmyBonus hand = if Set.member Queen hand then 20 else 5
+      perArmyBonus hand = if Map.member Queen hand then 20 else 5
   Knights ->
     Card
       { name = "Knights",
@@ -271,7 +274,7 @@ describe = \case
         penalty = const 0
       }
     where
-      perArmyBonus hand = if Set.member King hand then 20 else 5
+      perArmyBonus hand = if Map.member King hand then 20 else 5
   Rangers ->
     Card
       { name = "Rangers",
@@ -356,14 +359,17 @@ describe = \case
     where
       allCardsHaveDifferentSuits hand = length suits == length (nub suits)
         where
-          suits = map (suit . describe) (Set.toList hand)
+          suits = map suit (Map.elems hand)
+
+initializeHand :: Set CardName -> Hand
+initializeHand cardNames =
+  Map.fromAscList
+    [ (cardName, describe cardName)
+      | cardName <- Set.toAscList cardNames
+    ]
 
 scoreHand :: Hand -> Map CardName Int
-scoreHand hand =
-  Map.fromList
-    [ (cardName, scoreCard (describe cardName))
-      | cardName <- Set.toList hand
-    ]
+scoreHand hand = Map.map scoreCard hand
   where
     scoreCard card = baseStrength card + bonus card hand + penalty card hand
 

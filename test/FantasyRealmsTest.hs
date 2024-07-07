@@ -13,6 +13,6 @@ main = defaultMain $
     assertScores [(BellTower, 23), (Enchantress, 10)]
 
 assertScores :: [(CardName, Int)] -> Assertion
-assertScores expectedScores = Map.fromList expectedScores @?= computedScores
+assertScores expectedScores = Map.fromList expectedScores @?= scoreHand hand
   where
-    computedScores = scoreHand (Set.fromList (map fst expectedScores))
+    hand = initializeHand (Set.fromList (map fst expectedScores))
