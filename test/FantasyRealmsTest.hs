@@ -9,5 +9,10 @@ import Test.Tasty.HUnit
 main :: IO ()
 main = defaultMain $
   testCase "Scoring hands" $ do
-    0 @?= sum (scoreHand Set.empty)
-    Map.fromAscList [(BellTower, 23), (Enchantress, 10)] @?= scoreHand (Set.fromList [BellTower, Enchantress])
+    assertScores []
+    assertScores [(BellTower, 23), (Enchantress, 10)]
+
+assertScores :: [(CardName, Int)] -> Assertion
+assertScores expectedScores = Map.fromList expectedScores @?= computedScores
+  where
+    computedScores = scoreHand (Set.fromList (map fst expectedScores))
