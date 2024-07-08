@@ -79,7 +79,7 @@ data CardName
 type Hand = Map CardName Card
 
 data Card = Card
-  { name :: String,
+  { name :: CardName,
     baseStrength :: Int,
     suit :: Suit,
     bonusScore :: CardName -> Hand -> Int,
@@ -87,18 +87,6 @@ data Card = Card
     penaltyBlanks :: Card -> Bool,
     clearsPenalty :: Card -> Bool
   }
-
-mkCard :: String -> Suit -> Int -> Card
-mkCard name suit baseStrength =
-  Card
-    { name,
-      suit,
-      baseStrength,
-      bonusScore = \_ _ -> 0,
-      penaltyScore = \_ _ -> 0,
-      penaltyBlanks = const False,
-      clearsPenalty = const False
-    }
 
 withBonusScore :: (CardName -> Hand -> Int) -> Card -> Card
 withBonusScore f c@(Card {bonusScore}) = c {bonusScore = bonusScore <+> f}
@@ -137,9 +125,8 @@ pointsForEachOtherCardThat score matches cardName hand =
 hasSuit :: Suit -> Predicate Card
 hasSuit wantedSuit card = suit card == wantedSuit
 
--- TODO: hasName shouldn't need to go via String representation
 hasName :: CardName -> Predicate Card
-hasName cardName card = name (describe cardName) == name card
+hasName cardName card = cardName == name card
 
 (<+>) :: (a -> b -> Int) -> (a -> b -> Int) -> a -> b -> Int
 (<+>) = liftA2 (liftA2 (+))
@@ -147,18 +134,18 @@ hasName cardName card = name (describe cardName) == name card
 infixr 6 <+>
 
 describe :: CardName -> Card
-describe = \case
+describe = withName $ \case
   Basilisk ->
     -- TODO: BLANKS all Armies, Leaders, and other Beasts
-    mkCard "Basilisk" Beast 35
+    mkCard Beast 35
   BellTower ->
-    mkCard "Bell Tower" Land 8
+    mkCard Land 8
       & withBonusScore (15 `pointsWhen` hasCardThat (hasSuit Wizard))
   BookOfChanges ->
     -- TODO You may change the suit of one other card
-    mkCard "Book of Changes" Artifact 3
+    mkCard Artifact 3
   Candle ->
-    mkCard "Candle" Flame 2
+    mkCard Flame 2
       & withBonusScore (100 `pointsWhen` hasTrio)
     where
       hasTrio =
@@ -166,29 +153,29 @@ describe = \case
           &&* hasCardThat (hasName BellTower)
           &&* hasCardThat (hasSuit Wizard)
   Cavern ->
-    mkCard "Cavern" Land 6
+    mkCard Land 6
       & withBonusScore (25 `pointsWhen` hasCardThat (hasName DwarvishInfantry ||* hasName Dragon))
       & clearingPenalty (hasSuit Weather)
   Dragon ->
-    mkCard "Dragon" Beast 30
+    mkCard Beast 30
       & withPenaltyScore ((-40) `pointsWhen` notB (hasCardThat (hasSuit Wizard)))
   DwarvishInfantry ->
-    mkCard "Dwarvish Infantry" Army 15
+    mkCard Army 15
       & withPenaltyScore ((-2) `pointsForEachOtherCardThat` hasSuit Army)
   ElvenArchers ->
-    mkCard "Elven Archers" Army 10
+    mkCard Army 10
       & withBonusScore (5 `pointsWhen` notB (hasCardThat (hasSuit Weather)))
   Empress ->
-    mkCard "Empress" Leader 15
+    mkCard Leader 15
       & withBonusScore (10 `pointsForEachCardThat` hasSuit Army)
       & withPenaltyScore ((-5) `pointsForEachOtherCardThat` hasSuit Leader)
   Enchantress ->
-    mkCard "Enchantress" Wizard 5
+    mkCard Wizard 5
       & withBonusScore (5 `pointsForEachCardThat` hasElementalSuit)
     where
       hasElementalSuit = hasSuit Land ||* hasSuit Weather ||* hasSuit Flood ||* hasSuit Flame
   GemOfOrder ->
-    mkCard "Gem of Order" Artifact 5
+    mkCard Artifact 5
       & withBonusScore (\_self -> scoreLength . longestRunLength . baseStrengths)
     where
       baseStrengths :: Map k Card -> [Int]
@@ -205,51 +192,51 @@ describe = \case
         6 -> 100
         _ -> 150
   Hydra ->
-    mkCard "Hydra" Beast 12
+    mkCard Beast 12
       & withBonusScore (28 `pointsWhen` hasCardThat (hasName Swamp))
   King ->
-    mkCard "King" Leader 8
+    mkCard Leader 8
       & withBonusScore (\self hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) self hand)
     where
       -- TODO Should check name of card, not key in map
       perArmyBonus hand = if Map.member Queen hand then 20 else 5
   Knights ->
-    mkCard "Knights" Army 20
+    mkCard Army 20
       & withPenaltyScore ((-8) `pointsWhen` notB (hasCardThat (hasSuit Leader)))
   LightCavalry ->
-    mkCard "Light Cavalry" Army 17
+    mkCard Army 17
       & withPenaltyScore ((-2) `pointsForEachCardThat` hasSuit Land)
   Necromancer ->
-    mkCard "Necromancer" Wizard 3
+    mkCard Wizard 3
   Princess ->
-    mkCard "Princess" Leader 2
+    mkCard Leader 2
       & withBonusScore (8 `pointsForEachCardThat` (hasSuit Army ||* hasSuit Wizard))
       & withBonusScore (8 `pointsForEachOtherCardThat` hasSuit Leader)
   ProtectionRune ->
-    mkCard "ProtectionRune" Artifact 1
+    mkCard Artifact 1
       & clearingPenalty (const True)
   Queen ->
-    mkCard "Queen" Leader 6
+    mkCard Leader 6
       & withBonusScore (\self hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) self hand)
     where
       perArmyBonus hand = if Map.member King hand then 20 else 5
   Rangers ->
     -- TODO: CLEARS the word Army from all Penalties.
-    mkCard "Rangers" Army 5
+    mkCard Army 5
       & withBonusScore (10 `pointsForEachCardThat` hasSuit Land)
   ShieldOfKeth ->
-    mkCard "ShieldOfKeth" Artifact 4
+    mkCard Artifact 4
       & withBonusScore (15 `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName SwordOfKeth))))
       & withBonusScore (40 `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName SwordOfKeth)))
   Swamp ->
-    mkCard "Swamp" Flood 18
+    mkCard Flood 18
       & withPenaltyScore ((-3) `pointsForEachCardThat` (hasSuit Army ||* hasSuit Flame))
   SwordOfKeth ->
-    mkCard "Sword of Keth" Weapon 7
+    mkCard Weapon 7
       & withBonusScore (10 `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName ShieldOfKeth))))
       & withBonusScore (40 `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName ShieldOfKeth)))
   Unicorn ->
-    mkCard "Unicorn" Beast 9
+    mkCard Beast 9
       & withBonusScore (30 `pointsWhen` hasCardThat (hasName Princess))
       & withBonusScore
         ( 15
@@ -258,12 +245,12 @@ describe = \case
                          )
         )
   Warhorse ->
-    mkCard "Warhorse" Beast 6
+    mkCard Beast 6
       & withBonusScore (14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard))
   Wildfire ->
     -- TODO: BLANKS all cards except Flames, Wizards, Weather, Weapons,
     -- Artifacts, Mountain, Great Flood, Island, Unicorn and Dragon.
-    mkCard "Wildfire" Flame 40
+    mkCard Flame 40
       & blanking
         ( notB
             ( hasSuit Flame
@@ -276,12 +263,27 @@ describe = \case
             )
         )
   WorldTree ->
-    mkCard "World Tree" Artifact 2
+    mkCard Artifact 2
       & withBonusScore (50 `pointsWhen` allCardsHaveDifferentSuits)
     where
       allCardsHaveDifferentSuits _self hand = length suits == length (nub suits)
         where
           suits = map suit (Map.elems hand)
+  where
+    withName :: (CardName -> Card) -> CardName -> Card
+    withName f cardName = (f cardName) {name = cardName}
+
+    mkCard :: Suit -> Int -> Card
+    mkCard suit baseStrength =
+      Card
+        { name = undefined,
+          suit,
+          baseStrength,
+          bonusScore = \_ _ -> 0,
+          penaltyScore = \_ _ -> 0,
+          penaltyBlanks = const False,
+          clearsPenalty = const False
+        }
 
 -- | Expands the given cards to a hand.
 --
