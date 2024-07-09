@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module BaseGame where
+module BaseGame (CardName (..)) where
 
 import Data.Boolean (notB, (&&*), (||*))
 import Data.Function ((&))
@@ -186,7 +186,7 @@ instance FantasyRealms CardName where
             bonusScore = \_ _ -> 0,
             penaltyScore = \_ _ -> 0,
             penaltyBlanks = const False,
-            clearsPenalty = const False
+            bonusClearsPenalty = const False
           }
 
 -- | Length of the longest run of consecutive values.

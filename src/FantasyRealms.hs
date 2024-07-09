@@ -6,23 +6,34 @@
 -- | Scoring calculator for the card game
 -- [Fantasy Realms](https://boardgamegeek.com/boardgame/223040/fantasy-realms).
 module FantasyRealms
-  ( FantasyRealms (..),
+  ( -- * Types
+    FantasyRealms (..),
+    Card (..),
     Suit (..),
     Hand,
-    Card (..),
+
+    -- * Describing cards
+
+    -- | These modifiers can be applied to cards using `Data.Function.(&)`.
     withBonusScore,
+    clearingPenalty,
     withPenaltyScore,
+    blanking,
+
+    -- * Scoring bonus or penalty points
     pointsWhen,
     hasCardThat,
+    pointsForEachCardThat,
+    pointsForEachOtherCardThat,
+
+    -- * Predicates on other cards
     hasSuit,
     hasName,
-    clearingPenalty,
-    pointsForEachOtherCardThat,
-    pointsForEachCardThat,
     hasOneOfSuits,
-    blanking,
+
+    -- * Scoring hands
     initializeHand,
-    computeEffects,
+    applyEffects,
     scoreHand,
   )
 where
@@ -33,11 +44,6 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
 import Data.Set qualified as Set
-
--- Change type
--- BONUS: Clears the Penalty on XXX
--- PENALTY: Blanked
--- PENALTY: Blanks
 
 -- | The suit of a card.
 data Suit
@@ -57,68 +63,98 @@ data Suit
 -- | A hand of cards and their properties.
 type Hand name = Map name (Card name)
 
+-- | A card's full properties, including how it affects and is affected by other
+-- cards.
+--
+-- A card is parametrised by its name so that concrete card implementations can
+-- live outside this module.
 data Card name = Card
-  { name :: name,
+  { -- | The card's name.
+    name :: name,
+    -- | The card's base strength.
     baseStrength :: Int,
+    -- | The card's suit.
     suit :: Suit,
+    -- | Given the card's own original name and a hand of cards, computes any
+    -- bonuses to the score.
     bonusScore :: name -> Hand name -> Int,
+    -- | Whether the given card's penalties are cleared by this card.
+    bonusClearsPenalty :: Card name -> Bool,
+    -- | Given the card's own original name and a hand of cards, computes any
+    -- penalties to the score. The resulting score is expected to be a negative
+    -- number.
     penaltyScore :: name -> Hand name -> Int,
-    penaltyBlanks :: Card name -> Bool,
-    clearsPenalty :: Card name -> Bool
+    -- | Whether the given card is blanked by this card.
+    penaltyBlanks :: Card name -> Bool
   }
 
+-- | The class of Fantasy Realms card names.
 class FantasyRealms name where
+  -- | Given a card name, describe the card's properties.
   describeCard :: name -> Card name
 
+-- | Adds a bonus score to a card.
+--
+-- Any existing bonus scores are added to the new bonus score.
 withBonusScore :: (name -> Hand name -> Int) -> Card name -> Card name
 withBonusScore f c@(Card {bonusScore}) = c {bonusScore = bonusScore <+> f}
 
+-- | Adds a new class of cards whose penalties are cleared by this card.
+--
+-- Any existing penalties cleared are kept and combined with the new predicate.
+clearingPenalty :: (Card name -> Bool) -> Card name -> Card name
+clearingPenalty f c@(Card {bonusClearsPenalty}) = c {bonusClearsPenalty = bonusClearsPenalty ||* f}
+
+-- | Adds a penalty score to this card.
+--
+-- Any existing penalty scores are added to the new penalty score.
 withPenaltyScore :: (name -> Hand name -> Int) -> Card name -> Card name
 withPenaltyScore f c@(Card {penaltyScore}) = c {penaltyScore = penaltyScore <+> f}
 
+-- | Adds a new class of cards that are blanked by this card.
+--
+-- Any existing blanked cards are kept and combined with the new predicate.
 blanking :: (Card name -> Bool) -> Card name -> Card name
 blanking f c@(Card {penaltyBlanks}) = c {penaltyBlanks = penaltyBlanks ||* f}
-
-clearingPenalty :: (Card name -> Bool) -> Card name -> Card name
-clearingPenalty f c@(Card {clearsPenalty}) = c {clearsPenalty = clearsPenalty ||* f}
-
-type Predicate a = a -> Bool
-
-hasCardThat :: Predicate (Card name) -> name -> Hand name -> Bool
-hasCardThat matches _ = any matches
-
-hasOtherCardThat :: (Eq name) => Predicate (Card name) -> name -> Hand name -> Bool
-hasOtherCardThat matches cardName = Map.foldrWithKey f False
-  where
-    f self card foundRest = (self /= cardName && matches card) || foundRest
-
-pointsWhen :: Int -> (name -> Hand name -> Bool) -> name -> Hand name -> Int
-pointsWhen score matches cardName hand = if matches cardName hand then score else 0
-
-pointsForEachCardThat :: Int -> (Card name -> Bool) -> name -> Hand name -> Int
-pointsForEachCardThat score matches _ hand = score * Map.size (Map.filter matches hand)
-
-pointsForEachOtherCardThat :: (Eq name) => Int -> (Card name -> Bool) -> name -> Hand name -> Int
-pointsForEachOtherCardThat score matches cardName hand =
-  score * Map.size (Map.filterWithKey otherCardMatches hand)
-  where
-    otherCardMatches self card = self /= cardName && matches card
-
-hasSuit :: Suit -> Predicate (Card name)
-hasSuit wantedSuit card = suit card == wantedSuit
-
-hasOneOfSuits :: [Suit] -> Predicate (Card name)
-hasOneOfSuits wantedSuits card = suit card `elem` wantedSuits
-
-hasName :: (Eq name) => name -> Predicate (Card name)
-hasName cardName card = cardName == name card
 
 (<+>) :: (a -> b -> Int) -> (a -> b -> Int) -> a -> b -> Int
 (<+>) = liftA2 (liftA2 (+))
 
 infixr 6 <+>
 
--- | Expands the given cards to a hand.
+-- | Scores points when a condition is met.
+pointsWhen :: Int -> (name -> Hand name -> Bool) -> name -> Hand name -> Int
+pointsWhen score matches cardName hand = if matches cardName hand then score else 0
+
+-- | Whether at least one of a hand of cards meets the given condition.
+hasCardThat :: (Card name -> Bool) -> name -> Hand name -> Bool
+hasCardThat matches _ = any matches
+
+-- | Scores points for each card that meets the given condition.
+pointsForEachCardThat :: Int -> (Card name -> Bool) -> name -> Hand name -> Int
+pointsForEachCardThat score matches _ hand = score * Map.size (Map.filter matches hand)
+
+-- | Scores points for each card other than the current card that meets the
+-- given condition.
+pointsForEachOtherCardThat :: (Eq name) => Int -> (Card name -> Bool) -> name -> Hand name -> Int
+pointsForEachOtherCardThat score matches cardName hand =
+  score * Map.size (Map.filterWithKey otherCardMatches hand)
+  where
+    otherCardMatches self card = self /= cardName && matches card
+
+-- | Whether a card has the given name.
+hasName :: (Eq name) => name -> Card name -> Bool
+hasName cardName card = cardName == name card
+
+-- | Whether a card has the given suit.
+hasSuit :: Suit -> Card name -> Bool
+hasSuit wantedSuit card = suit card == wantedSuit
+
+-- | Whether a card has one of given suits.
+hasOneOfSuits :: [Suit] -> Card name -> Bool
+hasOneOfSuits wantedSuits card = suit card `elem` wantedSuits
+
+-- | Expands the given card names to a hand of cards and their base properties.
 --
 -- All cards have base properties, and still need to have their effects applied to each other.
 initializeHand :: (Eq name, FantasyRealms name) => Set name -> Hand name
@@ -128,10 +164,11 @@ initializeHand cardNames =
       | cardName <- Set.toAscList cardNames
     ]
 
--- | Compute the various effects that cards have on each other, together with
--- whether a card is blanked.
-computeEffects :: Hand name -> Map name (Card name, Bool)
-computeEffects = blankCard . clearPenalties
+-- | Given a hand of cards, applies the various effects that cards have on each
+-- other. The resulting map contains cards with updated properties, as well as a
+-- boolean indicating whether the card was blanked.
+applyEffects :: Hand name -> Map name (Card name, Bool)
+applyEffects = blankCard . clearPenalties
 
 blankCard :: Hand name -> Map name (Card name, Bool)
 blankCard hand = Map.map updateCard hand
@@ -147,7 +184,7 @@ clearPenalties hand = Map.map updateCard hand
       | otherwise = card
 
     isPenaltyCleared :: Card name -> Bool
-    isPenaltyCleared = foldr ((||*) . clearsPenalty) false (Map.elems hand)
+    isPenaltyCleared = foldr ((||*) . bonusClearsPenalty) false (Map.elems hand)
 
     clearPenalty :: Card name -> Card name
     clearPenalty card =

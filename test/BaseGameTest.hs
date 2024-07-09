@@ -22,5 +22,5 @@ assertScores :: [(CardName, Int)] -> Assertion
 assertScores expectedScores = Map.fromList expectedScores @?= zeroedScores
   where
     hand = initializeHand (Set.fromList (map fst expectedScores))
-    actualScores = scoreHand (computeEffects hand)
+    actualScores = scoreHand (applyEffects hand)
     zeroedScores = fmap (fromMaybe 0) actualScores
