@@ -125,6 +125,9 @@ pointsForEachOtherCardThat score matches cardName hand =
 hasSuit :: Suit -> Predicate Card
 hasSuit wantedSuit card = suit card == wantedSuit
 
+hasOneOfSuits :: [Suit] -> Predicate Card
+hasOneOfSuits wantedSuits card = suit card `elem` wantedSuits
+
 hasName :: CardName -> Predicate Card
 hasName cardName card = cardName == name card
 
@@ -173,7 +176,7 @@ describe = withName $ \case
     mkCard Wizard 5
       & withBonusScore (5 `pointsForEachCardThat` hasElementalSuit)
     where
-      hasElementalSuit = hasSuit Land ||* hasSuit Weather ||* hasSuit Flood ||* hasSuit Flame
+      hasElementalSuit = hasOneOfSuits [Land, Weather, Flood, Flame]
   GemOfOrder ->
     mkCard Artifact 5
       & withBonusScore (\_self -> scoreLength . longestRunLength . baseStrengths)
@@ -210,7 +213,7 @@ describe = withName $ \case
     mkCard Wizard 3
   Princess ->
     mkCard Leader 2
-      & withBonusScore (8 `pointsForEachCardThat` (hasSuit Army ||* hasSuit Wizard))
+      & withBonusScore (8 `pointsForEachCardThat` hasOneOfSuits [Army, Wizard])
       & withBonusScore (8 `pointsForEachOtherCardThat` hasSuit Leader)
   ProtectionRune ->
     mkCard Artifact 1
@@ -230,7 +233,7 @@ describe = withName $ \case
       & withBonusScore (40 `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName SwordOfKeth)))
   Swamp ->
     mkCard Flood 18
-      & withPenaltyScore ((-3) `pointsForEachCardThat` (hasSuit Army ||* hasSuit Flame))
+      & withPenaltyScore ((-3) `pointsForEachCardThat` hasOneOfSuits [Army, Flame])
   SwordOfKeth ->
     mkCard Weapon 7
       & withBonusScore (10 `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName ShieldOfKeth))))
@@ -246,18 +249,14 @@ describe = withName $ \case
         )
   Warhorse ->
     mkCard Beast 6
-      & withBonusScore (14 `pointsWhen` hasCardThat (hasSuit Leader ||* hasSuit Wizard))
+      & withBonusScore (14 `pointsWhen` hasCardThat (hasOneOfSuits [Leader, Wizard]))
   Wildfire ->
     -- TODO: BLANKS all cards except Flames, Wizards, Weather, Weapons,
     -- Artifacts, Mountain, Great Flood, Island, Unicorn and Dragon.
     mkCard Flame 40
       & blanking
         ( notB
-            ( hasSuit Flame
-                ||* hasSuit Wizard
-                ||* hasSuit Weather
-                ||* hasSuit Weapon
-                ||* hasSuit Artifact
+            ( hasOneOfSuits [Flame, Wizard, Weather, Weapon, Artifact]
                 ||* hasName Unicorn
                 ||* hasName Dragon
             )
