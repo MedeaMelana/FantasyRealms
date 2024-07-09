@@ -1,11 +1,12 @@
 module Main (main) where
 
+import BaseGame
 import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import FantasyRealms
 import Test.Tasty
 import Test.Tasty.HUnit
-import Data.Maybe (fromMaybe)
 
 main :: IO ()
 main = defaultMain $
