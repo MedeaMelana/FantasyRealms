@@ -44,8 +44,9 @@ data CardName
 instance FantasyRealms CardName where
   describeCard = withName $ \case
     Basilisk ->
-      -- TODO: BLANKS all Armies, Leaders, and other Beasts
       mkCard Beast 35
+        & blankingEachCardThat (hasOneOfSuits [Army, Leader])
+        & blankingEachOtherCardThat (hasSuit Beast)
     BellTower ->
       mkCard Land 8
         & withBonusScore (15 `pointsWhen` hasCardThat (hasSuit Wizard))
@@ -159,13 +160,12 @@ instance FantasyRealms CardName where
       -- TODO: BLANKS all cards except Flames, Wizards, Weather, Weapons,
       -- Artifacts, Mountain, Great Flood, Island, Unicorn and Dragon.
       mkCard Flame 40
-        & blanking
-          ( notB
-              ( hasOneOfSuits [Flame, Wizard, Weather, Weapon, Artifact]
-                  ||* hasName Unicorn
-                  ||* hasName Dragon
-              )
-          )
+        & blankingEachCardThat (notB isExcepted)
+      where
+        isExcepted =
+          hasOneOfSuits [Flame, Wizard, Weather, Weapon, Artifact]
+            ||* hasName Unicorn
+            ||* hasName Dragon
     WorldTree ->
       mkCard Artifact 2
         & withBonusScore (50 `pointsWhen` allCardsHaveDifferentSuits)
@@ -185,7 +185,7 @@ instance FantasyRealms CardName where
             baseStrength,
             bonusScore = \_ _ -> 0,
             penaltyScore = \_ _ -> 0,
-            penaltyBlanks = const False,
+            penaltyBlanks = \_ _ -> False,
             bonusClearsPenalty = const False
           }
 
