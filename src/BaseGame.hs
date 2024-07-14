@@ -28,12 +28,14 @@ data CardName
   | King
   | Knights
   | LightCavalry
+  | Mountain
   | Necromancer
   | Princess
   | ProtectionRune
   | Rangers
   | Queen
   | ShieldOfKeth
+  | Smoke
   | Swamp
   | SwordOfKeth
   | Unicorn
@@ -116,6 +118,10 @@ instance FantasyRealms CardName where
     LightCavalry ->
       mkCard Army 17
         & withPenaltyScore ((-2) `pointsForEachCardThat` hasSuit Land)
+    Mountain ->
+      mkCard Land 9
+        & withBonusScore (50 `pointsWhen` (hasCardThat (hasName Smoke) &&* hasCardThat (hasName Wildfire)))
+        & clearingPenalty (hasSuit Flood)
     Necromancer ->
       mkCard Wizard 3
     Princess ->
@@ -138,6 +144,9 @@ instance FantasyRealms CardName where
       mkCard Artifact 4
         & withBonusScore (15 `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName SwordOfKeth))))
         & withBonusScore (40 `pointsWhen` (hasCardThat (hasSuit Leader) &&* hasCardThat (hasName SwordOfKeth)))
+    Smoke ->
+      mkCard Weather 27
+        & blankedUnless (hasCardThat (hasSuit Flame))
     Swamp ->
       mkCard Flood 18
         & withPenaltyScore ((-3) `pointsForEachCardThat` hasOneOfSuits [Army, Flame])
