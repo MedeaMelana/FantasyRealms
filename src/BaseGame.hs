@@ -8,6 +8,7 @@ import Data.Function ((&))
 import Data.List (nub, sort)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import FantasyRealms
 
 -- | The cards available in the base game.
@@ -185,7 +186,7 @@ instance FantasyRealms CardName where
             baseStrength,
             bonusScore = \_ _ -> 0,
             penaltyScore = \_ _ -> 0,
-            penaltyBlanks = \_ _ -> False,
+            penaltyBlanks = \_ _ -> Set.empty,
             bonusClearsPenalty = const False
           }
 

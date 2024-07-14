@@ -20,6 +20,7 @@ module FantasyRealms
     withPenaltyScore,
     blankingEachCardThat,
     blankingEachOtherCardThat,
+    blankedUnless,
 
     -- * Scoring bonus or penalty points
     pointsWhen,
@@ -85,9 +86,9 @@ data Card name = Card
     -- penalties to the score. The resulting score is expected to be a negative
     -- number.
     penaltyScore :: name -> Hand name -> Int,
-    -- | Given a card and whether that card is the same as this card, returns
-    -- whether this card blanks that card.
-    penaltyBlanks :: Card name -> Bool -> Bool
+    -- | Given the card's own original name and a hand of cards, returns which
+    -- cards this card blanks.
+    penaltyBlanks :: name -> Hand name -> Set name
   }
 
 -- | Types that represent Fantasy Realms card names.
@@ -113,27 +114,29 @@ clearingPenalty f c@(Card {bonusClearsPenalty}) = c {bonusClearsPenalty = bonusC
 withPenaltyScore :: (name -> Hand name -> Int) -> Card name -> Card name
 withPenaltyScore f c@(Card {penaltyScore}) = c {penaltyScore = penaltyScore <+> f}
 
+withPenaltyBlanks :: (Ord name) => (name -> Hand name -> Set name) -> Card name -> Card name
+withPenaltyBlanks f card = card {penaltyBlanks = penaltyBlanks card <> f}
+
 -- | Adds a new class of cards that are blanked by this card, regardless of
 -- whether the considered card is another card or this card itself.
 --
 -- Any existing blanked cards are kept and combined with the new predicate.
-blankingEachCardThat :: (Card name -> Bool) -> Card name -> Card name
-blankingEachCardThat f card =
-  card
-    { penaltyBlanks = \otherCard isSelf ->
-        penaltyBlanks card otherCard isSelf || f otherCard
-    }
+blankingEachCardThat :: (Ord name) => (Card name -> Bool) -> Card name -> Card name
+blankingEachCardThat f = withPenaltyBlanks (\_self -> Map.keysSet . Map.filter f)
 
 -- | Adds a new class of cards that are blanked by this card, provided that the
 -- considered card is another card.
 --
 -- Any existing blanked cards are kept and combined with the new predicate.
-blankingEachOtherCardThat :: (Show name) => (Card name -> Bool) -> Card name -> Card name
-blankingEachOtherCardThat f card =
-  card
-    { penaltyBlanks = \otherCard isSelf ->
-        penaltyBlanks card otherCard isSelf || (not isSelf && f otherCard)
-    }
+blankingEachOtherCardThat :: (Ord name) => (Show name) => (Card name -> Bool) -> Card name -> Card name
+blankingEachOtherCardThat f = withPenaltyBlanks $ \self hand ->
+  let checkCard otherName otherCard = self /= otherName && f otherCard
+   in Map.keysSet (Map.filterWithKey checkCard hand)
+
+-- | Markes this card as blanked if the given condition is not met.
+blankedUnless :: (Ord name) => (name -> Hand name -> Bool) -> Card name -> Card name
+blankedUnless f = withPenaltyBlanks $ \self hand ->
+  if f self hand then Set.empty else Set.singleton self
 
 (<+>) :: (a -> b -> Int) -> (a -> b -> Int) -> a -> b -> Int
 (<+>) = liftA2 (liftA2 (+))
@@ -185,16 +188,20 @@ initializeHand cardNames =
 -- | Given a hand of cards, applies the various effects that cards have on each
 -- other. The resulting map contains cards with updated properties, as well as a
 -- boolean indicating whether the card was blanked.
-applyEffects :: (Eq name) => Hand name -> Map name (Card name, Bool)
+applyEffects :: (Ord name) => Hand name -> Map name (Card name, Bool)
 applyEffects = blankCards . clearPenalties
 
-blankCards :: (Eq name) => Hand name -> Map name (Card name, Bool)
+blankCards :: forall name. (Ord name) => Hand name -> Map name (Card name, Bool)
 blankCards hand = Map.mapWithKey checkCard hand
   where
-    checkCard cardName card = (card, or (Map.mapWithKey isBlanked hand))
-      where
-        isBlanked otherCardName otherCard =
-          penaltyBlanks otherCard card (cardName == otherCardName)
+    checkCard :: name -> Card name -> (Card name, Bool)
+    checkCard cardName card = (card, Set.member cardName combinedNames)
+
+    combinedNames :: Set name
+    combinedNames = Set.unions (Map.mapWithKey perCardNames hand)
+
+    perCardNames :: name -> Card name -> Set name
+    perCardNames cardName1 card1 = penaltyBlanks card1 cardName1 hand
 
 clearPenalties :: forall name. Hand name -> Hand name
 clearPenalties hand = Map.map updateCard hand
@@ -211,7 +218,7 @@ clearPenalties hand = Map.map updateCard hand
     clearPenalty card =
       card
         { penaltyScore = \_ _ -> 0,
-          penaltyBlanks = \_ _ -> False
+          penaltyBlanks = \_ _ -> Set.empty
         }
 
 -- | Score a hand of cards based on their current properties.
