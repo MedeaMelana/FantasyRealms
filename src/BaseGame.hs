@@ -187,10 +187,9 @@ instance FantasyRealms CardName where
       mkCard Flood 14
     King ->
       mkCard Leader 8
-        & withBonusScore (\self hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) self hand)
+        & withBonusScore (\self hand -> (perArmyBonus self hand `pointsForEachCardThat` hasSuit Army) self hand)
       where
-        -- TODO Should check name of card, not key in map
-        perArmyBonus hand = if Map.member Queen hand then 20 else 5
+        perArmyBonus self hand = if hasCardThat (hasName Queen) self hand then 20 else 5
     Knights ->
       mkCard Army 20
         & withPenaltyScore ((-8) `pointsWhen` notB (hasCardThat (hasSuit Leader)))
@@ -222,9 +221,9 @@ instance FantasyRealms CardName where
         & clearingPenalty (const True)
     Queen ->
       mkCard Leader 6
-        & withBonusScore (\self hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) self hand)
+        & withBonusScore (\self hand -> (perArmyBonus self hand `pointsForEachCardThat` hasSuit Army) self hand)
       where
-        perArmyBonus hand = if Map.member King hand then 20 else 5
+        perArmyBonus self hand = if hasCardThat (hasName King) self hand then 20 else 5
     Rainstorm ->
       mkCard Weather 8
         & withBonusScore (10 `pointsForEachCardThat` hasSuit Flood)
@@ -292,15 +291,12 @@ instance FantasyRealms CardName where
           hasCardThat (hasName Rainstorm)
             &&* hasCardThat (hasName Blizzard ||* hasName GreatFlood)
     Wildfire ->
-      -- TODO: BLANKS all cards except Flames, Wizards, Weather, Weapons,
-      -- Artifacts, Mountain, Great Flood, Island, Unicorn and Dragon.
       mkCard Flame 40
         & blankingEachCardThat (notB isExcepted)
       where
         isExcepted =
           hasOneOfSuits [Flame, Wizard, Weather, Weapon, Artifact]
-            ||* hasName Unicorn
-            ||* hasName Dragon
+            ||* hasOneOfNames [Mountain, GreatFlood, Island, Unicorn, Dragon]
     WorldTree ->
       mkCard Artifact 2
         & withBonusScore (50 `pointsWhen` allCardsHaveDifferentSuits)
