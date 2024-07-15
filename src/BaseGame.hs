@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 module BaseGame (CardName (..)) where
 
@@ -13,33 +14,57 @@ import FantasyRealms
 
 -- | The cards available in the base game.
 data CardName
-  = Basilisk
+  = AirElemental
+  | Basilisk
+  | Beastmaster
   | BellTower
+  | Blizzard
   | BookOfChanges
   | Candle
   | Cavern
+  | Collector
+  | Doppelgänger
   | Dragon
   | DwarvishInfantry
+  | EarthElemental
   | ElvenArchers
+  | ElvenLongbow
   | Empress
   | Enchantress
+  | FireElemental
+  | Forest
+  | Forge
+  | FountainOfLife
   | GemOfOrder
+  | GreatFlood
   | Hydra
+  | Island
   | King
   | Knights
   | LightCavalry
+  | Lightning
+  | MagicWand
+  | Mirage
   | Mountain
   | Necromancer
   | Princess
   | ProtectionRune
-  | Rangers
   | Queen
+  | Rainstorm
+  | Rangers
+  | Shapeshifter
   | ShieldOfKeth
   | Smoke
   | Swamp
   | SwordOfKeth
   | Unicorn
+  | WarDirigible
   | Warhorse
+  | WarlockLord
+  | Warlord
+  | Warship
+  | WaterElemental
+  | Whirlwind
   | Wildfire
   | WorldTree
   deriving (Eq, Ord, Enum, Show, Read)
