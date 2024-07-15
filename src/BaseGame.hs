@@ -1,12 +1,12 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 module BaseGame (CardName (..)) where
 
 import Data.Boolean (notB, (&&*), (||*))
+import Data.Foldable (toList)
 import Data.Function ((&))
-import Data.List (nub, sort)
+import Data.List (group, nub, sort)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -71,13 +71,24 @@ data CardName
 
 instance FantasyRealms CardName where
   describeCard = withName $ \case
+    AirElemental ->
+      mkCard Weather 4
+        & withBonusScore (15 `pointsForEachOtherCardThat` hasSuit Weather)
     Basilisk ->
       mkCard Beast 35
         & blankingEachCardThat (hasOneOfSuits [Army, Leader])
         & blankingEachOtherCardThat (hasSuit Beast)
+    Beastmaster ->
+      mkCard Wizard 9
+        & withBonusScore (9 `pointsForEachCardThat` hasSuit Beast)
+        & clearingPenalty (hasSuit Beast)
     BellTower ->
       mkCard Land 8
         & withBonusScore (15 `pointsWhen` hasCardThat (hasSuit Wizard))
+    Blizzard ->
+      mkCard Weather 30
+        & blankingEachCardThat (hasSuit Flood)
+        & withPenaltyScore ((-5) `pointsForEachCardThat` hasOneOfSuits [Army, Leader, Beast, Flame])
     BookOfChanges ->
       -- TODO You may change the suit of one other card
       mkCard Artifact 3
@@ -93,15 +104,38 @@ instance FantasyRealms CardName where
       mkCard Land 6
         & withBonusScore (25 `pointsWhen` hasCardThat (hasName DwarvishInfantry ||* hasName Dragon))
         & clearingPenalty (hasSuit Weather)
+    Collector ->
+      mkCard Wizard 7
+        & withBonusScore (const mostSameSuit)
+      where
+        mostSameSuit :: Hand name -> Int
+        mostSameSuit = score . maximum . map length . group . sort . fmap suit . Map.elems
+
+        score :: Int -> Int
+        score = \case
+          3 -> 10
+          4 -> 40
+          len | len >= 5 -> 100
+          _ -> undefined
+    Doppelgänger ->
+      -- TODO may duplicate the name, base strength, suit, and penalty BUT NOT BONUS of any one
+      -- other card in your hand
+      mkCard Wild 0
     Dragon ->
       mkCard Beast 30
         & withPenaltyScore ((-40) `pointsWhen` notB (hasCardThat (hasSuit Wizard)))
     DwarvishInfantry ->
       mkCard Army 15
         & withPenaltyScore ((-2) `pointsForEachOtherCardThat` hasSuit Army)
+    EarthElemental ->
+      mkCard Land 4
+        & withBonusScore (15 `pointsForEachOtherCardThat` hasSuit Land)
     ElvenArchers ->
       mkCard Army 10
         & withBonusScore (5 `pointsWhen` notB (hasCardThat (hasSuit Weather)))
+    ElvenLongbow ->
+      mkCard Weapon 3
+        & withBonusScore (30 `pointsWhen` hasCardThat (hasOneOfNames [ElvenArchers, Warlord, Beastmaster]))
     Empress ->
       mkCard Leader 15
         & withBonusScore (10 `pointsForEachCardThat` hasSuit Army)
@@ -111,6 +145,18 @@ instance FantasyRealms CardName where
         & withBonusScore (5 `pointsForEachCardThat` hasElementalSuit)
       where
         hasElementalSuit = hasOneOfSuits [Land, Weather, Flood, Flame]
+    FireElemental ->
+      mkCard Flame 4
+        & withBonusScore (15 `pointsForEachOtherCardThat` hasSuit Flame)
+    Forest ->
+      mkCard Land 7
+        & withBonusScore (12 `pointsForEachCardThat` (hasSuit Beast ||* hasName ElvenArchers))
+    Forge ->
+      mkCard Flame 9
+        & withBonusScore (9 `pointsForEachCardThat` hasOneOfSuits [Weapon, Artifact])
+    FountainOfLife ->
+      -- TODO Add the base strength of any one Weapon, Flood, Flame, Land or Weather in your hand
+      mkCard Flood 1
     GemOfOrder ->
       mkCard Artifact 5
         & withBonusScore (\_self -> scoreLength . longestRunLength . baseStrengths)
@@ -128,9 +174,17 @@ instance FantasyRealms CardName where
           5 -> 60
           6 -> 100
           _ -> 150
+    GreatFlood ->
+      mkCard Flood 32
+        & blankingEachCardThat (hasSuit Army ||* Land `except` Mountain ||* Flame `except` Lightning)
+      where
+        suit `except` name = hasSuit suit &&* notB (hasName name)
     Hydra ->
       mkCard Beast 12
         & withBonusScore (28 `pointsWhen` hasCardThat (hasName Swamp))
+    Island ->
+      -- TODO CLEARS the Penalty on any one Flood or Flame
+      mkCard Flood 14
     King ->
       mkCard Leader 8
         & withBonusScore (\self hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) self hand)
@@ -143,6 +197,16 @@ instance FantasyRealms CardName where
     LightCavalry ->
       mkCard Army 17
         & withPenaltyScore ((-2) `pointsForEachCardThat` hasSuit Land)
+    Lightning ->
+      mkCard Flame 11
+        & withBonusScore (30 `pointsWhen` hasCardThat (hasName Rainstorm))
+    MagicWand ->
+      mkCard Weapon 1
+        & withBonusScore (25 `pointsWhen` hasCardThat (hasSuit Wizard))
+    Mirage ->
+      -- TODO May duplicate the name and suit of any one Army, Land, Weather, Flood or Flame in the
+      -- game
+      mkCard Wild 0
     Mountain ->
       mkCard Land 9
         & withBonusScore (50 `pointsWhen` (hasCardThat (hasName Smoke) &&* hasCardThat (hasName Wildfire)))
@@ -161,10 +225,18 @@ instance FantasyRealms CardName where
         & withBonusScore (\self hand -> (perArmyBonus hand `pointsForEachCardThat` hasSuit Army) self hand)
       where
         perArmyBonus hand = if Map.member King hand then 20 else 5
+    Rainstorm ->
+      mkCard Weather 8
+        & withBonusScore (10 `pointsForEachCardThat` hasSuit Flood)
+        & blankingEachCardThat (hasSuit Flame &&* notB (hasName Lightning))
     Rangers ->
       -- TODO: CLEARS the word Army from all Penalties.
       mkCard Army 5
         & withBonusScore (10 `pointsForEachCardThat` hasSuit Land)
+    Shapeshifter ->
+      -- TODO May duplicate the name and suit of any one Artifact, Leader, Wizard, Weapon or Beast
+      -- in the game.
+      mkCard Wild 0
     ShieldOfKeth ->
       mkCard Artifact 4
         & withBonusScore (15 `pointsWhen` (hasCardThat (hasSuit Leader) &&* notB (hasCardThat (hasName SwordOfKeth))))
@@ -188,9 +260,37 @@ instance FantasyRealms CardName where
                                &&* hasCardThat (hasName Empress ||* hasName Queen ||* hasName Enchantress)
                            )
           )
+    WarDirigible ->
+      mkCard Weapon 35
+        & blankedUnless (hasCardThat (hasSuit Army))
+        & blankedWhen (hasCardThat (hasSuit Weather))
     Warhorse ->
       mkCard Beast 6
         & withBonusScore (14 `pointsWhen` hasCardThat (hasOneOfSuits [Leader, Wizard]))
+    WarlockLord ->
+      mkCard Wizard 25
+        & withPenaltyScore ((-10) `pointsForEachCardThat` hasSuit Leader)
+        & withPenaltyScore ((-10) `pointsForEachOtherCardThat` hasSuit Wizard)
+    Warlord ->
+      mkCard Leader 4
+        & withBonusScore (const armyStrengthSum)
+      where
+        armyStrengthSum :: Hand name -> Int
+        armyStrengthSum = sum . fmap baseStrength . filter (hasSuit Army) . toList
+    Warship ->
+      mkCard Weapon 23
+        -- TODO CLEARS the word Army from all Penalties of all Floods
+        & blankedUnless (hasCardThat (hasSuit Flood))
+    WaterElemental ->
+      mkCard Flood 4
+        & withBonusScore (15 `pointsForEachOtherCardThat` hasSuit Flood)
+    Whirlwind ->
+      mkCard Weather 13
+        & withBonusScore (40 `pointsWhen` hasCombo)
+      where
+        hasCombo =
+          hasCardThat (hasName Rainstorm)
+            &&* hasCardThat (hasName Blizzard ||* hasName GreatFlood)
     Wildfire ->
       -- TODO: BLANKS all cards except Flames, Wizards, Weather, Weapons,
       -- Artifacts, Mountain, Great Flood, Island, Unicorn and Dragon.

@@ -20,6 +20,7 @@ module FantasyRealms
     withPenaltyScore,
     blankingEachCardThat,
     blankingEachOtherCardThat,
+    blankedWhen,
     blankedUnless,
 
     -- * Scoring bonus or penalty points
@@ -29,8 +30,9 @@ module FantasyRealms
     pointsForEachOtherCardThat,
 
     -- * Predicates on other cards
-    hasSuit,
     hasName,
+    hasOneOfNames,
+    hasSuit,
     hasOneOfSuits,
 
     -- * Scoring hands
@@ -41,7 +43,7 @@ module FantasyRealms
 where
 
 import Control.Applicative (liftA2)
-import Data.Boolean ((||*))
+import Data.Boolean (Boolean (notB), (||*))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Set (Set)
@@ -133,10 +135,14 @@ blankingEachOtherCardThat f = withPenaltyBlanks $ \self hand ->
   let checkCard otherName otherCard = self /= otherName && f otherCard
    in Map.keysSet (Map.filterWithKey checkCard hand)
 
+-- | Markes this card as blanked if the given condition is met.
+blankedWhen :: (Ord name) => (name -> Hand name -> Bool) -> Card name -> Card name
+blankedWhen f = withPenaltyBlanks $ \self hand ->
+  if f self hand then Set.singleton self else Set.empty
+
 -- | Markes this card as blanked if the given condition is not met.
 blankedUnless :: (Ord name) => (name -> Hand name -> Bool) -> Card name -> Card name
-blankedUnless f = withPenaltyBlanks $ \self hand ->
-  if f self hand then Set.empty else Set.singleton self
+blankedUnless f = blankedWhen (notB f)
 
 (<+>) :: (a -> b -> Int) -> (a -> b -> Int) -> a -> b -> Int
 (<+>) = liftA2 (liftA2 (+))
@@ -166,6 +172,10 @@ pointsForEachOtherCardThat score matches cardName hand =
 -- | Whether a card has the given name.
 hasName :: (Eq name) => name -> Card name -> Bool
 hasName cardName card = cardName == name card
+
+-- | Whether a card has one of the given names.
+hasOneOfNames :: (Eq name) => [name] -> Card name -> Bool
+hasOneOfNames cardNames card = name card `elem` cardNames
 
 -- | Whether a card has the given suit.
 hasSuit :: Suit -> Card name -> Bool
