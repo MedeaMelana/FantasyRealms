@@ -155,8 +155,11 @@ instance FantasyRealms CardName where
       mkCard Flame 9
         & withBonusScore (9 `pointsForEachCardThat` hasOneOfSuits [Weapon, Artifact])
     FountainOfLife ->
-      -- TODO Add the base strength of any one Weapon, Flood, Flame, Land or Weather in your hand
       mkCard Flood 1
+        & withBonusScore (const findStrongest)
+      where
+        findStrongest = maximum . map baseStrength . filter (hasOneOfSuits suits) . toList
+        suits = [Weapon, Flood, Flame, Land, Weather]
     GemOfOrder ->
       mkCard Artifact 5
         & withBonusScore (\_self -> scoreLength . longestRunLength . baseStrengths)
