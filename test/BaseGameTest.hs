@@ -19,6 +19,10 @@ main = defaultMain $
     assertScores [(Wildfire, 40), (ShieldOfKeth, 4), (King, 0)]
     assertScores [(Basilisk, 35), (Warhorse, 0), (LightCavalry, 0), (Swamp, 18)]
     assertScores [(Smoke, 0)]
+    assertScores [(FountainOfLife, 2)]
+    assertScores [(FountainOfLife, 12), (Lightning, 11)]
+    assertScores [(FountainOfLife, 0), (Wildfire, 40)]
+    assertScores [(FountainOfLife, 3), (Candle, 2), (Basilisk, 35)]
 
 assertScores :: [(CardName, Int)] -> Assertion
 assertScores expectedScores = zeroedScores @?= Map.fromList expectedScores
